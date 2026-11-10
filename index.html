@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Toolkit</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f6b63">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--ink:#1d2b2a;--mute:#5d6f6d;--line:#d5dedc;--accent:#0f6b63;--accent-ink:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#121918;--card:#1a2322;--ink:#e6efed;--mute:#97aaa7;--line:#2f3d3b;--accent:#4fc3b5;--accent-ink:#06211e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Hind Siliguri",sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 14px}
+nav{display:flex;gap:6px;margin-bottom:14px}
+nav button{flex:1;padding:10px 6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+section{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+section.on{display:block}
+label{display:block;margin:10px 0 4px;color:var(--mute);font-size:.92rem}
+input[type=file],textarea,select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:110px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1 1 140px}
+button.go{padding:11px 16px;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer;margin-top:12px}
+button.sm{padding:4px 10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;font:inherit;cursor:pointer}
+ul{list-style:none;padding:0;margin:10px 0}
+li{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#status{margin-top:10px;color:var(--mute);min-height:1.4em}
+#stage{position:relative;margin-top:12px;overflow:auto;max-width:100%}
+#stage img{display:block;max-width:100%}
+#stage .w{position:absolute;color:transparent;white-space:nowrap;line-height:1;cursor:text}
+#stage .w::selection{background:rgba(15,107,99,.35)}
+</style>
+</head>
+<body>
+<main>
+<h1>PDF Toolkit</h1>
+<button class="go" id="install" hidden style="margin:0 0 12px">📲 Install on this device</button>
+<nav role="tablist">
+  <button role="tab" data-t="mk" aria-selected="true">Create PDF</button>
+  <button role="tab" data-t="mg" aria-selected="false">Merge PDFs</button>
+  <button role="tab" data-t="oc" aria-selected="false">Image to text</button>
+</nav>
+
+<section id="mk" class="on">
+  <label>Choose images, Word (.docx) or .txt files</label>
+  <input type="file" id="mkFiles" multiple accept="image/*,.docx,.txt">
+  <label>Or type your text</label>
+  <textarea id="mkText" placeholder="Type or paste text here..."></textarea>
+  <ul id="mkList"></ul>
+  <div class="row">
+    <div><label>Text size</label><input type="range" id="fs" min="18" max="48" value="28"></div>
+    <div><label>Image brightness</label><input type="range" id="br" min="50" max="150" value="100"></div>
+    <div><label>Image color</label><select id="gray"><option value="0">Original</option><option value="1">Black &amp; white</option></select></div>
+    <div><label>Page size</label><select id="fit"><option value="a4">A4 (image centered)</option><option value="img">Match image size</option></select></div>
+  </div>
+  <button class="go" id="mkGo">Create PDF</button>
+</section>
+
+<section id="mg">
+  <label>Choose two or more PDF files</label>
+  <input type="file" id="mgFiles" multiple accept="application/pdf">
+  <ul id="mgList"></ul>
+  <button class="go" id="mgGo">Merge PDFs</button>
+</section>
+
+<section id="oc">
+  <label>Take a photo or choose an image</label>
+  <input type="file" id="ocFile" accept="image/*" capture="environment">
+  <label>Language</label>
+  <select id="lang"><option value="eng">English</option><option value="ben+eng">Bengali + English</option><option value="ben">Bengali</option></select>
+  <button class="go" id="ocGo">Extract text</button>
+  <div id="stage"></div>
+  <label>Extracted text (editable)</label>
+  <textarea id="ocOut"></textarea>
+  <div class="row">
+    <button class="sm" id="ocCopy">Copy</button>
+    <button class="sm" id="ocPdf">Make PDF from this text</button>
+  </div>
+</section>
+
+<div id="status" role="status"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const say = m => $('#status').textContent = m;
+
+// ---- Install (PWA) ----
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+let deferredInstall;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e; $('#install').hidden = false;
+});
+$('#install').onclick = async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt(); await deferredInstall.userChoice;
+  deferredInstall = null; $('#install').hidden = true;
+};
+window.addEventListener('appinstalled', () => say('Installed successfully ✔'));
+
+// ---- Tabs ----
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === b.dataset.t));
+});
+
+function download(bytes, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], {type: 'application/pdf'}));
+  a.download = name; a.click();
+}
+const loadImg = file => new Promise((res, rej) => {
+  const im = new Image(); im.onload = () => res(im); im.onerror = rej;
+  im.src = URL.createObjectURL(file);
+});
+
+// ---- 1. Create PDF ----
+let items = []; // {kind:'img'|'text', name, img?, text?, rot}
+function drawMk() {
+  $('#mkList').innerHTML = '';
+  items.forEach((it, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span></span>';
+    li.firstChild.textContent = (it.kind === 'img' ? '🖼 ' : '📄 ') + it.name;
+    const mk = (t, f, label) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = t; b.title = label; b.setAttribute('aria-label', label); b.onclick = f; li.append(b); };
+    if (it.kind === 'img') mk('↻', () => { it.rot = (it.rot + 90) % 360; say('Rotated ' + it.name); }, 'Rotate');
+    mk('↑', () => { if (i) { [items[i - 1], items[i]] = [items[i], items[i - 1]]; drawMk(); } }, 'Move up');
+    mk('✕', () => { items.splice(i, 1); drawMk(); }, 'Remove');
+    $('#mkList').append(li);
+  });
+}
+$('#mkFiles').onchange = async e => {
+  say('Reading files...');
+  for (const f of e.target.files) {
+    try {
+      if (f.type.startsWith('image/')) items.push({kind: 'img', name: f.name, img: await loadImg(f), rot: 0});
+      else if (/\.docx$/i.test(f.name)) {
+        const r = await mammoth.extractRawText({arrayBuffer: await f.arrayBuffer()});
+        items.push({kind: 'text', name: f.name, text: r.value});
+      } else if (/\.txt$/i.test(f.name)) items.push({kind: 'text', name: f.name, text: await f.text()});
+    } catch (err) { say('Could not read: ' + f.name); }
+  }
+  e.target.value = ''; drawMk(); say('');
+};
+
+function imgToJpeg(it) {
+  const swap = it.rot % 180 !== 0, im = it.img;
+  const w = swap ? im.naturalHeight : im.naturalWidth, h = swap ? im.naturalWidth : im.naturalHeight;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.filter = `grayscale(${$('#gray').value}) brightness(${$('#br').value}%)`;
+  x.translate(w / 2, h / 2); x.rotate(it.rot * Math.PI / 180);
+  x.drawImage(im, -im.naturalWidth / 2, -im.naturalHeight / 2);
+  return {data: c.toDataURL('image/jpeg', .9), w, h};
+}
+// Text is drawn onto page images so any script (including Bengali) renders correctly
+function textToPages(text) {
+  const W = 1240, H = 1754, M = 100, fs = +$('#fs').value, lh = fs * 1.6, pages = [];
+  let c, x, y;
+  const newPage = () => {
+    c = document.createElement('canvas'); c.width = W; c.height = H;
+    x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#000'; x.font = `${fs}px system-ui, "Hind Siliguri", sans-serif`; x.textBaseline = 'top';
+    y = M; pages.push(c);
+  };
+  newPage();
+  const put = s => { if (y + lh > H - M) newPage(); x.fillText(s, M, y); y += lh; };
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const word of para.split(' ')) {
+      const t = line ? line + ' ' + word : word;
+      if (x.measureText(t).width > W - 2 * M && line) { put(line); line = word; } else line = t;
+    }
+    put(line);
+  }
+  return pages.map(p => p.toDataURL('image/jpeg', .92));
+}
+async function build(parts, a4 = true) {
+  const pdf = await PDFLib.PDFDocument.create();
+  for (const p of parts) {
+    const jpg = await pdf.embedJpg(p.data);
+    if (a4) {
+      const pg = pdf.addPage([595, 842]), s = Math.min(555 / jpg.width, 802 / jpg.height);
+      pg.drawImage(jpg, {x: (595 - jpg.width * s) / 2, y: (842 - jpg.height * s) / 2, width: jpg.width * s, height: jpg.height * s});
+    } else {
+      const pg = pdf.addPage([jpg.width, jpg.height]); pg.drawImage(jpg, {x: 0, y: 0, width: jpg.width, height: jpg.height});
+    }
+  }
+  return pdf.save();
+}
+$('#mkGo').onclick = async () => {
+  const all = [...items];
+  if ($('#mkText').value.trim()) all.push({kind: 'text', name: 'Typed text', text: $('#mkText').value});
+  if (!all.length) return say('Add a file or some text first.');
+  say('Creating PDF...');
+  try {
+    const a4 = $('#fit').value === 'a4', parts = [];
+    for (const it of all) {
+      if (it.kind === 'img') parts.push(imgToJpeg(it));
+      else textToPages(it.text).forEach(d => parts.push({data: d}));
+    }
+    // In "match image size" mode, text pages stay A4
+    download(await build(parts, a4 || all.every(i => i.kind === 'text')), 'converted.pdf');
+    say('Done ✔');
+  } catch (e) { say('Something went wrong: ' + e.message); }
+};
+
+// ---- 2. Merge PDFs ----
+let pdfs = [];
+function drawMg() {
+  $('#mgList').innerHTML = '';
+  pdfs.forEach((f, i) => {
+    const li = document.createElement('li'); li.innerHTML = '<span></span>'; li.firstChild.textContent = '📕 ' + f.name;
+    const mk = (t, fn, label) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = t; b.title = label; b.setAttribute('aria-label', label); b.onclick = fn; li.append(b); };
+    mk('↑', () => { if (i) { [pdfs[i - 1], pdfs[i]] = [pdfs[i], pdfs[i - 1]]; drawMg(); } }, 'Move up');
+    mk('✕', () => { pdfs.splice(i, 1); drawMg(); }, 'Remove');
+    $('#mgList').append(li);
+  });
+}
+$('#mgFiles').onchange = e => { pdfs.push(...e.target.files); e.target.value = ''; drawMg(); };
+$('#mgGo').onclick = async () => {
+  if (pdfs.length < 2) return say('Add at least two PDF files.');
+  say('Merging...');
+  try {
+    const out = await PDFLib.PDFDocument.create();
+    for (const f of pdfs) {
+      const src = await PDFLib.PDFDocument.load(await f.arrayBuffer());
+      (await out.copyPages(src, src.getPageIndices())).forEach(p => out.addPage(p));
+    }
+    download(await out.save(), 'merged.pdf'); say('Done ✔');
+  } catch (e) { say('Something went wrong (a PDF may be password-protected): ' + e.message); }
+};
+
+// ---- 3. Image to text (OCR) ----
+$('#ocGo').onclick = async () => {
+  const f = $('#ocFile').files[0];
+  if (!f) return say('Choose an image first.');
+  const url = URL.createObjectURL(f), stage = $('#stage');
+  stage.innerHTML = ''; const im = new Image(); im.src = url; await im.decode(); stage.append(im);
+  say('Downloading language data (first run only)...');
+  try {
+    const {data} = await Tesseract.recognize(f, $('#lang').value, {
+      logger: m => { if (m.status === 'recognizing text') say('Reading text ' + Math.round(m.progress * 100) + '%'); }
+    });
+    $('#ocOut').value = data.text;
+    const k = im.clientWidth / im.naturalWidth;
+    (data.words || []).forEach(w => {
+      const s = document.createElement('span'); s.className = 'w'; s.textContent = w.text + ' ';
+      const b = w.bbox; s.style.cssText = `left:${b.x0 * k}px;top:${b.y0 * k}px;width:${(b.x1 - b.x0) * k}px;height:${(b.y1 - b.y0) * k}px;font-size:${(b.y1 - b.y0) * k * .9}px`;
+      stage.append(s);
+    });
+    say('Done. Press and hold on the image to select text, or copy it from the box below.');
+  } catch (e) { say('Something went wrong: ' + e.message); }
+};
+$('#ocCopy').onclick = async () => { await navigator.clipboard.writeText($('#ocOut').value); say('Copied ✔'); };
+$('#ocPdf').onclick = () => { $('#mkText').value = $('#ocOut').value; document.querySelector('[data-t=mk]').click(); say('Text added to the Create PDF tab.'); };
+</script>
+</body>
+</html>
