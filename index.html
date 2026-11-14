@@ -351,6 +351,7 @@ body{padding-bottom:110px}
   </div>
   <div id="status" role="status" hidden></div>
 </div>
+<p class="hint" style="text-align:center;margin-top:18px">App version <b id="appVer">v12</b> · <button class="sm" id="hardRefresh">Refresh app</button></p>
 </main>
 
 <!-- Live camera -->
@@ -1771,7 +1772,4 @@ const WHEELS = [['lift', 'Shadows (lift)', 'liftM'], ['gamma', 'Midtones (gamma)
 const ringCv = document.createElement('canvas'); ringCv.width = ringCv.height = 120;
 (function () {
   const x = ringCv.getContext('2d'), im = x.createImageData(120, 120);
-  for (let py = 0; py < 120; py++) for (let px = 0; px < 120; px++) {
-    const dx = px - 60, dy = py - 60, dist = Math.hypot(dx, dy), i = (py * 120 + px) * 4;
-    if (dist > R) continue;
-    const th = Math.ata
+  for (let py = 0; py < 120; py++) for (let px = 0; px 
