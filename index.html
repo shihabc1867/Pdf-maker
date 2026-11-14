@@ -24,7 +24,7 @@
   });
 })();
 </script>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap" media="print" onload="this.media='all'">
 <style>
 :root{--bg:#f4f6f5;--card:#fff;--ink:#1d2b2a;--mute:#5d6f6d;--line:#d5dedc;--accent:#0f6b63;--accent-ink:#fff}
 @media (prefers-color-scheme:dark){:root{--bg:#121918;--card:#1a2322;--ink:#e6efed;--mute:#97aaa7;--line:#2f3d3b;--accent:#4fc3b5;--accent-ink:#06211e}}
@@ -369,7 +369,7 @@ body{padding-bottom:110px}
   </div>
   <div id="status" role="status" hidden></div>
 </div>
-<p class="hint" style="text-align:center;margin-top:18px">App version <b id="appVer">v13</b> · <span id="jsOk">script not running ✖</span> · <button class="sm" id="hardRefresh">Refresh app</button></p>
+<p class="hint" style="text-align:center;margin-top:18px">App version <b id="appVer">v15</b> · <span id="jsOk">script not running ✖</span> · <button class="sm" id="hardRefresh">Refresh app</button></p>
 </main>
 
 <!-- Live camera -->
@@ -415,12 +415,6 @@ body{padding-bottom:110px}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const say = m => { const el = $('#status'); el.textContent = m || ''; el.hidden = !m; };
@@ -428,6 +422,44 @@ window.addEventListener('error', e => say('Error: ' + e.message));
 window.addEventListener('unhandledrejection', e => say('Error: ' + ((e.reason && e.reason.message) || e.reason)));
 const sleep = () => new Promise(r => setTimeout(r));
 const FONT = 'system-ui, "Hind Siliguri", sans-serif';
+$('#jsOk').textContent = 'script started, did not finish ✖';
+
+// ---------- Helper libraries load only when a feature needs them (with a backup download link) ----------
+const LIBS = {
+  pdflib: {ok: () => window.PDFLib, urls: ['https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js']},
+  tesseract: {ok: () => window.Tesseract, urls: ['https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js']},
+  mammoth: {ok: () => window.mammoth, urls: ['https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js', 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js']},
+  jszip: {ok: () => window.JSZip, urls: ['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js']},
+  pdfjs: {ok: () => window.pdfjsLib, urls: ['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'],
+    after: url => { pdfjsLib.GlobalWorkerOptions.workerSrc = url.replace('pdf.min.js', 'pdf.worker.min.js'); }},
+  fontkit: {ok: () => window.fontkit, urls: ['https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js', 'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js']}
+};
+const libP = {};
+function loadScript(url, ms) {
+  return new Promise((res, rej) => {
+    const el = document.createElement('script'); el.src = url;
+    const t = setTimeout(() => { el.remove(); rej(new Error('timeout')); }, ms);
+    el.onload = () => { clearTimeout(t); res(); };
+    el.onerror = () => { clearTimeout(t); el.remove(); rej(new Error('blocked')); };
+    document.head.append(el);
+  });
+}
+function need(...names) {
+  return Promise.all(names.map(n => {
+    const lib = LIBS[n]; if (lib.ok()) return Promise.resolve();
+    return libP[n] || (libP[n] = (async () => {
+      say('Loading helper (' + n + ')...');
+      let used = '';
+      for (const u of lib.urls) { try { await loadScript(u, 20000); if (lib.ok()) { used = u; break; } } catch (e) {} }
+      if (!lib.ok()) { delete libP[n]; throw new Error('Could not download the "' + n + '" helper. Check your internet connection and try again.'); }
+      if (lib.after) lib.after(used);
+      say('');
+    })());
+  }));
+}
+const pdfLib = async () => { await need('pdflib'); return window.PDFLib; };
+const tess = async () => { await need('tesseract'); return window.Tesseract; };
+const pdfjs = async () => { await need('pdfjs'); return window.pdfjsLib; };
 
 // ---------- Install (PWA) ----------
 if ('serviceWorker' in navigator) {
@@ -831,7 +863,7 @@ $('#scGo').onclick = async () => {
   const o = {filter: $('#scFilter').value, size: $('#scSize').value, head: $('#scHead').value.trim(),
     title: $('#scTitle').value.trim(), num: $('#scNum').checked, fmt: $('#scNumFmt').value, pos: $('#scNumPos').value};
   try {
-    const pdf = await PDFLib.PDFDocument.create();
+    const pdf = await (await pdfLib()).PDFDocument.create();
     for (let i = 0; i < pages.length; i++) {
       say('Processing page ' + (i + 1) + ' of ' + pages.length + '...'); await sleep();
       const c = compose(pages[i], i, pages.length, o);
@@ -876,7 +908,7 @@ $('#mkFiles').onchange = async e => {
   for (const f of e.target.files) {
     try {
       if (f.type.startsWith('image/')) items.push({kind: 'img', name: f.name, img: await loadImg(f), rot: 0});
-      else if (/\.docx$/i.test(f.name)) { const r = await mammoth.extractRawText({arrayBuffer: await f.arrayBuffer()}); items.push({kind: 'text', name: f.name, text: r.value}); }
+      else if (/\.docx$/i.test(f.name)) { await need('mammoth'); const r = await mammoth.extractRawText({arrayBuffer: await f.arrayBuffer()}); items.push({kind: 'text', name: f.name, text: r.value}); }
       else if (/\.txt$/i.test(f.name)) items.push({kind: 'text', name: f.name, text: await f.text()});
     } catch (err) { say('Could not read: ' + f.name); }
   }
@@ -913,7 +945,7 @@ function textToPages(text) { // text is drawn onto page images so any script ren
   return pgs.map(p => p.toDataURL('image/jpeg', .92));
 }
 async function build(parts, a4 = true) {
-  const pdf = await PDFLib.PDFDocument.create();
+  const pdf = await (await pdfLib()).PDFDocument.create();
   for (const p of parts) {
     const jpg = await pdf.embedJpg(p.data);
     if (a4) {
@@ -954,8 +986,8 @@ $('#mgGo').onclick = async () => {
   if (pdfs.length < 2) return say('Add at least two PDF files.');
   say('Merging...');
   try {
-    const out = await PDFLib.PDFDocument.create();
-    for (const f of pdfs) { const src = await PDFLib.PDFDocument.load(await f.arrayBuffer()); (await out.copyPages(src, src.getPageIndices())).forEach(p => out.addPage(p)); }
+    const out = await (await pdfLib()).PDFDocument.create();
+    for (const f of pdfs) { const src = await (await pdfLib()).PDFDocument.load(await f.arrayBuffer()); (await out.copyPages(src, src.getPageIndices())).forEach(p => out.addPage(p)); }
     download(await out.save(), 'merged.pdf'); say('Done ✔');
   } catch (e) { say('Something went wrong (a PDF may be password-protected): ' + e.message); }
 };
@@ -974,7 +1006,7 @@ async function runOcr(cv) {
   fit(); new ResizeObserver(fit).observe(img);
   say('Reading text... (the first run downloads language data)');
   try {
-    const {data} = await Tesseract.recognize(cv, $('#lang').value, {
+    const {data} = await (await tess()).recognize(cv, $('#lang').value, {
       logger: m => { if (m.status === 'recognizing text') say('Reading text ' + Math.round(m.progress * 100) + '%'); }
     });
     $('#ocOut').value = data.text;
@@ -1001,7 +1033,7 @@ $('#pgFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
     pgBytes = await f.arrayBuffer();
-    pgCount = (await PDFLib.PDFDocument.load(pgBytes)).getPageCount();
+    pgCount = (await (await pdfLib()).PDFDocument.load(pgBytes)).getPageCount();
     pgName = f.name.replace(/\.pdf$/i, '');
     $('#pgInfo').textContent = f.name + ' — ' + pgCount + ' page' + (pgCount > 1 ? 's' : '');
     say('');
@@ -1024,13 +1056,13 @@ function parseRange(str, max) {
 $('#pgGo').onclick = async () => {
   if (!pgBytes) return say('Choose a PDF first.');
   try {
-    const src = await PDFLib.PDFDocument.load(pgBytes), mode = $('#pgMode').value;
+    const src = await (await pdfLib()).PDFDocument.load(pgBytes), mode = $('#pgMode').value;
     if (mode === 'all') {
-      if (typeof JSZip === 'undefined') return say('ZIP library did not load. Check your internet connection.');
+      await need('jszip');
       const zip = new JSZip();
       for (let i = 0; i < pgCount; i++) {
         say('Splitting page ' + (i + 1) + ' of ' + pgCount + '...'); await sleep();
-        const d = await PDFLib.PDFDocument.create(); const [p] = await d.copyPages(src, [i]); d.addPage(p);
+        const d = await (await pdfLib()).PDFDocument.create(); const [p] = await d.copyPages(src, [i]); d.addPage(p);
         zip.file(pgName + '-page-' + (i + 1) + '.pdf', await d.save());
       }
       download(await zip.generateAsync({type: 'uint8array'}), pgName + '-pages.zip', 'application/zip');
@@ -1042,7 +1074,7 @@ $('#pgGo').onclick = async () => {
       const rm = new Set(idx); idx = [...Array(pgCount).keys()].filter(i => !rm.has(i));
       if (!idx.length) return say('That would delete every page.');
     }
-    const out = await PDFLib.PDFDocument.create();
+    const out = await (await pdfLib()).PDFDocument.create();
     (await out.copyPages(src, idx)).forEach(p => out.addPage(p));
     download(await out.save(), pgName + (mode === 'del' ? '-edited' : '-selected') + '.pdf');
     say('Done ✔ (' + idx.length + ' page' + (idx.length > 1 ? 's' : '') + ')');
@@ -1067,7 +1099,7 @@ function drawZp() {
 $('#zpFiles').onchange = e => { zfiles.push(...e.target.files); e.target.value = ''; drawZp(); };
 $('#zpGo').onclick = async () => {
   if (!zfiles.length) return say('Add some files first.');
-  if (typeof JSZip === 'undefined') return say('ZIP library did not load. Check your internet connection.');
+  await need('jszip');
   say('Zipping...');
   try {
     const zip = new JSZip(), used = new Set();
@@ -1086,7 +1118,6 @@ $('#zpGo').onclick = async () => {
 // =====================================================
 //  COMPRESS PDF (render pages with pdf.js, re-encode as smaller JPEGs)
 // =====================================================
-if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const RUNGS = [{dpi: 150, q: .8}, {dpi: 120, q: .65}, {dpi: 100, q: .55}, {dpi: 80, q: .45}, {dpi: 65, q: .35}, {dpi: 50, q: .3}];
 let cpBytes = null, cpName = '', cpSize = 0;
 $('#cpFile').onchange = e => {
@@ -1095,8 +1126,8 @@ $('#cpFile').onchange = e => {
   f.arrayBuffer().then(b => { cpBytes = b; $('#cpInfo').textContent = f.name + ' — ' + fmtSize(f.size); say(''); });
 };
 async function compressPass(bytes, rung, gray, label) {
-  const doc = await pdfjsLib.getDocument({data: bytes.slice(0)}).promise;
-  const out = await PDFLib.PDFDocument.create();
+  const doc = await (await pdfjs()).getDocument({data: bytes.slice(0)}).promise;
+  const out = await (await pdfLib()).PDFDocument.create();
   for (let i = 1; i <= doc.numPages; i++) {
     say(label + ' — page ' + i + ' of ' + doc.numPages + '...'); await sleep();
     const pg = await doc.getPage(i), base = pg.getViewport({scale: 1});
@@ -1119,7 +1150,7 @@ async function compressPass(bytes, rung, gray, label) {
 }
 $('#cpGo').onclick = async () => {
   if (!cpBytes) return say('Choose a PDF first.');
-  if (!window.pdfjsLib) return say('PDF reader library did not load. Check your internet connection.');
+  await need('pdflib', 'pdfjs');
   const gray = $('#cpGray').checked, start = +$('#cpLevel').value;
   const target = parseFloat($('#cpTarget').value) > 0 ? parseFloat($('#cpTarget').value) * 1048576 : 0;
   try {
@@ -1182,25 +1213,25 @@ function addTextLayer(page, lines, cw, ch, latin, latinSet, bn) {
 }
 $('#ssGo').onclick = async () => {
   if (!ssFiles.length) return say('Add a PDF or some images first.');
-  if (!window.pdfjsLib) return say('PDF reader library did not load. Check your internet connection.');
+  await need('pdflib', 'pdfjs');
   const lang = $('#ssLang').value, skipText = $('#ssSkip').checked;
   let worker = null, label = '', pageNo = 0, added = 0, skipped = 0, rotated = 0, bn = null, bnNote = '';
   try {
-    const out = await PDFLib.PDFDocument.create();
+    const out = await (await pdfLib()).PDFDocument.create();
     const latin = await out.embedFont(PDFLib.StandardFonts.Helvetica), latinSet = new Set(latin.getCharacterSet());
     if (lang.includes('ben')) {
       try {
-        say('Loading Bengali font...'); out.registerFontkit(fontkit);
+        say('Loading Bengali font...'); await need('fontkit'); out.registerFontkit(fontkit);
         const r = await fetch(BN_FONT); if (!r.ok) throw new Error('font');
         bn = await out.embedFont(await r.arrayBuffer(), {subset: true});
       } catch (e) { bnNote = ' Bengali font could not be loaded, so Bengali words were left out of the text layer.'; }
     }
     say('Preparing the reader (first run downloads language data)...');
-    worker = await Tesseract.createWorker(lang, 1, {logger: m => { if (m.status === 'recognizing text') say(label + ' — reading ' + Math.round(m.progress * 100) + '%'); }});
+    worker = await (await tess()).createWorker(lang, 1, {logger: m => { if (m.status === 'recognizing text') say(label + ' — reading ' + Math.round(m.progress * 100) + '%'); }});
     for (const f of ssFiles) {
       if (/pdf/i.test(f.type + f.name)) {
-        const bytes = await f.arrayBuffer(), src = await PDFLib.PDFDocument.load(bytes);
-        const jd = await pdfjsLib.getDocument({data: bytes.slice(0)}).promise;
+        const bytes = await f.arrayBuffer(), src = await (await pdfLib()).PDFDocument.load(bytes);
+        const jd = await (await pdfjs()).getDocument({data: bytes.slice(0)}).promise;
         for (let i = 1; i <= jd.numPages; i++) {
           pageNo++; label = f.name + ' page ' + i; say(label + '...'); await sleep();
           const [cp] = await out.copyPages(src, [i - 1]); const page = out.addPage(cp);
@@ -1750,31 +1781,4 @@ function cgScopes() {
     }
   } else {
     const bins = [new Float32Array(256), new Float32Array(256), new Float32Array(256), new Float32Array(256)];
-    for (let i = 0; i < d.length; i += 4) {
-      bins[0][d[i]]++; bins[1][d[i+1]]++; bins[2][d[i+2]]++; bins[3][Math.round(.2126 * d[i] + .7152 * d[i+1] + .0722 * d[i+2])]++;
-    }
-    let mx = 1; bins.forEach(b => { for (let i = 1; i < 255; i++) mx = Math.max(mx, b[i]); });
-    x.globalCompositeOperation = 'lighter';
-    ['rgba(255,50,50,.85)', 'rgba(50,255,80,.85)', 'rgba(70,110,255,.85)'].forEach((cl, ch) => {
-      x.fillStyle = cl; for (let i = 0; i < 256; i++) { const h = Math.min(1, bins[ch][i] / mx) * (SH - 4); x.fillRect(i, SH - h, 1, h); }
-    });
-    x.globalCompositeOperation = 'source-over'; x.strokeStyle = 'rgba(255,255,255,.9)'; x.beginPath();
-    for (let i = 0; i < 256; i++) { const y = SH - Math.min(1, bins[3][i] / mx) * (SH - 4); i ? x.lineTo(i, y) : x.moveTo(i, y); }
-    x.stroke();
-  }
-}
-$('#cgScopeSel').onchange = () => cgDirty();
-
-// ----- sliders -----
-function cgSlider(parent, label, get, set, min, max, step) {
-  const w = document.createElement('div'), lb = document.createElement('label'), pair = document.createElement('div');
-  lb.textContent = label + ' (' + min + ' to ' + max + ')'; pair.className = 'pair';
-  const r = document.createElement('input'), n = document.createElement('input');
-  r.type = 'range'; n.type = 'number';
-  [r, n].forEach(e => { e.min = min; e.max = max; e.step = step; });
-  n.inputMode = 'decimal'; n.setAttribute('aria-label', label + ' number'); r.setAttribute('aria-label', label);
-  const clamp = v => Math.min(max, Math.max(min, v));
-  r.oninput = () => { n.value = r.value; set(+r.value); cgDirty(); };
-  n.oninput = () => { const v = parseFloat(n.value); if (!isNaN(v)) { r.value = clamp(v); set(clamp(v)); cgDirty(); } };
-  n.onchange = () => { let v = parseFloat(n.value); if (isNaN(v)) v = get(); v = clamp(v); n.value = r.value = v; set(v); cgDirty(); };
-  pair.append(r, n); w.append(lb, pair); parent.appe
+    for (let i = 0; i < d.length
