@@ -67,7 +67,14 @@ details{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:6
 summary{cursor:pointer;font-weight:600;padding:4px 0}
 .chk{display:flex;align-items:center;gap:8px;margin:12px 0 4px;color:var(--ink)}
 .chk input{width:auto}
-#status{margin-top:10px;color:var(--mute);min-height:1.4em}
+body{padding-bottom:110px}
+#dock{position:fixed;left:8px;right:8px;bottom:8px;max-width:704px;margin:0 auto;z-index:60;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+#dock>*{pointer-events:auto}
+#status{padding:10px 14px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25);font-size:.95rem}
+#status[hidden],#fileBar[hidden]{display:none}
+#fileBar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--accent);color:var(--accent-ink);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+#fileBar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#fileBar .sm{background:var(--card);color:var(--ink);text-decoration:none;display:inline-block}
 .wrap{position:relative;display:block;width:100%;margin-top:12px;--k:1;line-height:0}
 .wrap img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
 .wrap .w{position:absolute;color:transparent;white-space:nowrap;line-height:1;cursor:text;-webkit-user-select:text;user-select:text}
@@ -334,7 +341,16 @@ summary{cursor:pointer;font-weight:600;padding:4px 0}
   </div>
 </section>
 
-<div id="status" role="status"></div>
+<div id="dock">
+  <div id="fileBar" hidden>
+    <span id="fbName"></span>
+    <a id="fbSave" class="sm">Save</a>
+    <a id="fbView" class="sm" target="_blank" rel="noopener">View</a>
+    <button class="sm" id="fbShare" hidden>Share</button>
+    <button class="sm" id="fbX" aria-label="Close">✕</button>
+  </div>
+  <div id="status" role="status" hidden></div>
+</div>
 </main>
 
 <!-- Live camera -->
@@ -388,12 +404,18 @@ summary{cursor:pointer;font-weight:600;padding:4px 0}
 <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-const say = m => $('#status').textContent = m;
+const say = m => { const el = $('#status'); el.textContent = m || ''; el.hidden = !m; };
+window.addEventListener('error', e => say('Error: ' + e.message));
+window.addEventListener('unhandledrejection', e => say('Error: ' + ((e.reason && e.reason.message) || e.reason)));
 const sleep = () => new Promise(r => setTimeout(r));
 const FONT = 'system-ui, "Hind Siliguri", sans-serif';
 
 // ---------- Install (PWA) ----------
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+}
 let deferredInstall;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('#install').hidden = false; });
 $('#install').onclick = async () => {
@@ -410,11 +432,21 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
 });
 
 // ---------- Helpers ----------
+let fbUrl = '';
 function download(bytes, name, type = 'application/pdf') {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([bytes], {type}));
-  a.download = name; a.click();
+  const blob = bytes instanceof Blob ? bytes : new Blob([bytes], {type});
+  if (fbUrl) URL.revokeObjectURL(fbUrl);
+  fbUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = fbUrl; a.download = name; document.body.append(a); a.click(); a.remove();
+  $('#fbName').textContent = name + ' (' + fmtSize(blob.size) + ')';
+  $('#fbSave').href = fbUrl; $('#fbSave').download = name; $('#fbView').href = fbUrl;
+  const file = new File([blob], name, {type: blob.type});
+  const canShare = !!(navigator.canShare && navigator.canShare({files: [file]}));
+  $('#fbShare').hidden = !canShare;
+  $('#fbShare').onclick = () => navigator.share({files: [file], title: name}).catch(() => {});
+  $('#fileBar').hidden = false;
 }
+$('#fbX').onclick = () => $('#fileBar').hidden = true;
 const loadImg = file => new Promise((res, rej) => {
   const im = new Image(); im.onload = () => res(im); im.onerror = rej;
   im.src = URL.createObjectURL(file);
@@ -1742,40 +1774,4 @@ const ringCv = document.createElement('canvas'); ringCv.width = ringCv.height = 
   for (let py = 0; py < 120; py++) for (let px = 0; px < 120; px++) {
     const dx = px - 60, dy = py - 60, dist = Math.hypot(dx, dy), i = (py * 120 + px) * 4;
     if (dist > R) continue;
-    const th = Math.atan2(-dy, dx), sat = dist / R;
-    [0, 1, 2].forEach(ch => { const v = .5 + (.5 * Math.cos(th - ch * 2 * Math.PI / 3) - .25) * sat * 1.6; im.data[i+ch] = Math.max(0, Math.min(255, v * 255)); });
-    im.data[i+3] = 255;
-  }
-  x.putImageData(im, 0, 0);
-})();
-const cgWheelCv = {};
-function drawWheel(k) {
-  const c = cgWheelCv[k], x = c.getContext('2d'), w = CG.wheels[k];
-  x.clearRect(0, 0, 120, 120); x.drawImage(ringCv, 0, 0);
-  x.strokeStyle = 'rgba(255,255,255,.6)'; x.beginPath(); x.arc(60, 60, R, 0, 7); x.stroke();
-  x.beginPath(); x.arc(60 + w.x * R, 60 + w.y * R, 6, 0, 7); x.fillStyle = '#fff'; x.fill(); x.strokeStyle = '#000'; x.stroke();
-}
-WHEELS.forEach(([k, title, master]) => {
-  const box = document.createElement('div'); box.className = 'wheel';
-  const c = document.createElement('canvas'); c.width = c.height = 120; cgWheelCv[k] = c;
-  const t = document.createElement('div'); t.textContent = title;
-  const rs = document.createElement('button'); rs.className = 'sm'; rs.textContent = 'Reset'; rs.onclick = () => { CG.wheels[k] = {x: 0, y: 0}; drawWheel(k); cgDirty(); };
-  box.append(t, c, rs); $('#cgWheels').append(box);
-  const move = e => {
-    const r = c.getBoundingClientRect();
-    let x = ((e.clientX - r.left) / r.width * 120 - 60) / R, y = ((e.clientY - r.top) / r.height * 120 - 60) / R;
-    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
-    CG.wheels[k] = {x, y}; drawWheel(k); cgDirty();
-  };
-  let down = false;
-  c.onpointerdown = e => { down = true; c.setPointerCapture(e.pointerId); move(e); };
-  c.onpointermove = e => { if (down) move(e); }; c.onpointerup = () => down = false;
-  cgSlider($('#cgWheelSl'), title + ' brightness', () => CG[master], v => CG[master] = v, -100, 100, 1);
-});
-// curves
-const cgCurveCv = $('#cgCurve'), CURVE_COL = {m: '#ffffff', r: '#ff5555', g: '#55ff77', b: '#6a8cff'};
-function drawCurve() {
-  const x = cgCurveCv.getContext('2d'), S = 300, pts = CG.curves[cgCurveCh];
-  x.fillStyle = '#0b0f0e'; x.fillRect(0, 0, S, S); x.strokeStyle = 'rgba(255,255,255,.14)'; x.lineWidth = 1; x.beginPath();
-  for (let i = 1; i < 4; i++) { x.moveTo(i * S / 4, 0); x.lineTo(i * S / 4, S); x.moveTo(0, i * S / 4); x.lineTo(S, i * S / 4); }
-  x.moveTo(0, S); x.lineTo(S, 0); x.st
+    const th = Math.ata
