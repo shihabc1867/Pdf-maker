@@ -7,11 +7,29 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0f6b63">
+<script>
+(function () {
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('nav button[data-t]'); if (!b) return;
+    var t = b.getAttribute('data-t');
+    document.querySelectorAll('nav button').forEach(function (x) { x.setAttribute('aria-selected', x === b); });
+    document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('on', s.id === t); });
+  });
+  window.addEventListener('error', function (e) {
+    var d = document.getElementById('bootErr');
+    if (!d) { d = document.createElement('div'); d.id = 'bootErr';
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:100;background:#b3261e;color:#fff;padding:8px 12px;font:13px/1.4 system-ui;white-space:pre-wrap';
+      (document.body || document.documentElement).appendChild(d); }
+    d.textContent = 'Problem: ' + e.message + (e.lineno ? ' (line ' + e.lineno + ')' : '');
+  });
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f4f6f5;--card:#fff;--ink:#1d2b2a;--mute:#5d6f6d;--line:#d5dedc;--accent:#0f6b63;--accent-ink:#fff}
 @media (prefers-color-scheme:dark){:root{--bg:#121918;--card:#1a2322;--ink:#e6efed;--mute:#97aaa7;--line:#2f3d3b;--accent:#4fc3b5;--accent-ink:#06211e}}
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Hind Siliguri",sans-serif}
 main{max-width:720px;margin:0 auto;padding:16px}
 h1{font-size:1.5rem;margin:8px 0 14px}
@@ -351,7 +369,7 @@ body{padding-bottom:110px}
   </div>
   <div id="status" role="status" hidden></div>
 </div>
-<p class="hint" style="text-align:center;margin-top:18px">App version <b id="appVer">v12</b> · <button class="sm" id="hardRefresh">Refresh app</button></p>
+<p class="hint" style="text-align:center;margin-top:18px">App version <b id="appVer">v13</b> · <span id="jsOk">script not running ✖</span> · <button class="sm" id="hardRefresh">Refresh app</button></p>
 </main>
 
 <!-- Live camera -->
@@ -1759,17 +1777,4 @@ function cgSlider(parent, label, get, set, min, max, step) {
   r.oninput = () => { n.value = r.value; set(+r.value); cgDirty(); };
   n.oninput = () => { const v = parseFloat(n.value); if (!isNaN(v)) { r.value = clamp(v); set(clamp(v)); cgDirty(); } };
   n.onchange = () => { let v = parseFloat(n.value); if (isNaN(v)) v = get(); v = clamp(v); n.value = r.value = v; set(v); cgDirty(); };
-  pair.append(r, n); w.append(lb, pair); parent.append(w);
-  cgReg.push(() => { r.value = n.value = get(); });
-}
-const cgB = $('#cgBasic');
-[['Exposure (stops)', 'exp', -2, 2, .05], ['Contrast', 'con', -100, 100, 1], ['Highlights', 'hi', -100, 100, 1], ['Shadows', 'sh', -100, 100, 1],
- ['Whites', 'wh', -100, 100, 1], ['Blacks', 'bl', -100, 100, 1], ['Temperature (cool ↔ warm)', 'temp', -100, 100, 1], ['Tint (green ↔ magenta)', 'tint', -100, 100, 1],
- ['Saturation %', 'sat', 0, 200, 1], ['Vibrance', 'vib', -100, 100, 1], ['Vignette', 'vig', -100, 100, 1]]
-  .forEach(([t, k, a, b, st]) => cgSlider(cgB, t.replace(/ \(.*$/, '') === t ? t : t, () => CG[k], v => CG[k] = v, a, b, st));
-// color wheels
-const WHEELS = [['lift', 'Shadows (lift)', 'liftM'], ['gamma', 'Midtones (gamma)', 'gammaM'], ['gain', 'Highlights (gain)', 'gainM']], R = 56;
-const ringCv = document.createElement('canvas'); ringCv.width = ringCv.height = 120;
-(function () {
-  const x = ringCv.getContext('2d'), im = x.createImageData(120, 120);
-  for (let py = 0; py < 120; py++) for (let px = 0; px 
+  pair.append(r, n); w.append(lb, pair); parent.appe
