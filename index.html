@@ -35,6 +35,33 @@ li{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid
 li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:60px}
 li img.th{width:46px;height:60px;object-fit:cover;border:1px solid var(--line);border-radius:4px;background:#fff}
 .pair{display:flex;gap:8px;align-items:center}.pair input[type=range]{flex:1;min-width:0}.pair input[type=number]{width:76px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+#fxBox{flex:1;min-height:0;width:100%;padding:8px}
+#fxC{width:100%;height:100%;object-fit:contain;background:#fff}
+.fxPanel{width:100%;max-height:48vh;overflow:auto;background:var(--card);color:var(--ink);padding:10px 16px 14px}
+.fxPanel label{margin:8px 0 2px}
+.fxPanel .btns .go{padding:10px 8px}
+#mcProg{width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;display:block;margin-top:10px}
+#mcGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.cam{border:2px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.cam.live{border-color:#e5484d;box-shadow:0 0 0 2px rgba(229,72,77,.35)}
+.cam .cap{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:.82rem}
+.cam .cap span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cam video{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#000;cursor:pointer}
+.cam .cutbtn{width:100%;border:0;border-top:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px;font:inherit;font-weight:600;cursor:pointer}
+.offrow{display:flex;gap:4px;align-items:center;padding:4px 6px 6px;font-size:.8rem;color:var(--mute)}
+.offrow input{width:100%;min-width:0;padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+#mcBar{position:relative;height:22px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:10px;cursor:pointer}
+#mcBar .seg{position:absolute;top:0;bottom:0}
+#mcHead{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px #000}
+#cgView{width:100%;height:auto;background:#000;border-radius:8px;display:block;margin-top:10px}
+#cgScope{width:100%;max-width:520px;height:auto;background:#0b0f0e;border-radius:8px;display:block;margin-top:8px}
+.wheels{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:8px 0}
+.wheel{text-align:center;font-size:.85rem;color:var(--mute)}
+.wheel canvas{width:100%;max-width:140px;aspect-ratio:1;touch-action:none;border-radius:50%}
+#cgCurve{width:100%;max-width:300px;aspect-ratio:1;touch-action:none;background:#0b0f0e;border-radius:8px;display:block;margin:8px 0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sw{display:inline-block;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);vertical-align:middle;margin-left:6px;background:#888}
 .hint{color:var(--mute);font-size:.9rem;margin:8px 0}
 details{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:6px 12px}
 summary{cursor:pointer;font-weight:600;padding:4px 0}
@@ -67,6 +94,8 @@ summary{cursor:pointer;font-weight:600;padding:4px 0}
   <button role="tab" data-t="ss" aria-selected="false">Searchable PDF</button>
   <button role="tab" data-t="cp" aria-selected="false">Compress PDF</button>
   <button role="tab" data-t="zp" aria-selected="false">Make ZIP</button>
+  <button role="tab" data-t="mc" aria-selected="false">Multicam video</button>
+  <button role="tab" data-t="cg" aria-selected="false">Color grade</button>
   <button role="tab" data-t="oc" aria-selected="false">Image to text</button>
 </nav>
 
@@ -82,7 +111,7 @@ summary{cursor:pointer;font-weight:600;padding:4px 0}
     <summary>Look and layout</summary>
     <div class="row">
       <div><label>Scan filter</label>
-        <select id="scFilter"><option value="enh">Enhanced (clean paper)</option><option value="bw">Black &amp; white</option><option value="orig">Original</option></select></div>
+        <select id="scFilter"><option value="enh">Enhanced (clean paper)</option><option value="bw">Black &amp; white</option><option value="gray">Grayscale</option><option value="vivid">Vivid color</option><option value="sepia">Sepia</option><option value="orig">Original</option></select></div>
       <div><label>Page size</label>
         <select id="scSize"><option value="same">Same as scan (edge to edge)</option><option value="a4">A4 (fill page)</option></select></div>
     </div>
@@ -196,6 +225,97 @@ summary{cursor:pointer;font-weight:600;padding:4px 0}
   <button class="go" id="zpGo">Create ZIP</button>
 </section>
 
+<!-- ========== MULTICAM VIDEO ========== -->
+<section id="mc">
+  <div class="btns">
+    <label class="go">＋ Add camera videos<input type="file" id="mcFiles" multiple accept="video/*" hidden></label>
+    <label class="go ghost">🎙 Add separate audio<input type="file" id="mcAudio" accept="audio/*,video/*" hidden></label>
+  </div>
+  <p class="hint">Add 2 or more videos of the same event. Press <b>Auto-sync by sound</b> so they line up, then press Play and tap a camera (or keys 1–9) to cut to it. Export records the final cut.</p>
+  <canvas id="mcProg" width="640" height="360"></canvas>
+  <div class="row" style="margin-top:8px">
+    <button class="sm" id="mcPlay" style="flex:0 0 56px;font-size:1.1rem">▶</button>
+    <input type="range" id="mcSeek" min="0" max="1" step="0.01" value="0" aria-label="Timeline position">
+    <span id="mcTime" style="flex:0 0 110px;text-align:right;color:var(--mute);font-size:.9rem">0:00.0 / 0:00.0</span>
+  </div>
+  <div id="mcBar" aria-label="Cut timeline"><div id="mcHead"></div></div>
+  <p class="hint"><span id="mcCutN">0 cuts</span> · colors match the cameras · tap the bar to jump</p>
+  <div id="mcGrid"></div>
+  <ul id="mcAudioList"></ul>
+  <div class="btns" style="margin-top:12px">
+    <button class="go ghost" id="mcSync">Auto-sync by sound</button>
+    <button class="go ghost" id="mcUndo">Undo last cut</button>
+    <button class="go ghost" id="mcClear">Clear cuts</button>
+  </div>
+  <div class="row">
+    <div><label>Audio source</label><select id="mcAudioSel"><option value="-1">No audio</option></select></div>
+    <div><label>Export size</label><select id="mcSize"><option value="1280x720">1280 × 720 (HD)</option><option value="1920x1080">1920 × 1080 (Full HD)</option><option value="854x480">854 × 480 (small)</option></select></div>
+  </div>
+  <div class="btns">
+    <button class="go" id="mcExport">Export video</button>
+    <button class="go ghost" id="mcCancel" hidden>Cancel export</button>
+  </div>
+  <p class="hint">Export plays your edit in real time, so a 5-minute edit takes about 5 minutes. Keep this screen open and awake. Result is MP4 on Safari, WebM on Chrome/Android.</p>
+</section>
+
+<!-- ========== COLOR GRADE ========== -->
+<section id="cg">
+  <div class="btns">
+    <label class="go">📂 Load video or photo<input type="file" id="cgFile" accept="video/*,image/*" hidden></label>
+    <button class="go ghost" id="cgCompare">Hold to see original</button>
+  </div>
+  <canvas id="cgView" width="640" height="360"></canvas>
+  <div class="row" id="cgPlayRow" style="margin-top:8px" hidden>
+    <button class="sm" id="cgPlay" style="flex:0 0 56px;font-size:1.1rem">▶</button>
+    <input type="range" id="cgSeek" min="0" max="1" step="0.01" value="0" aria-label="Timeline position">
+    <span id="cgTime" style="flex:0 0 110px;text-align:right;color:var(--mute);font-size:.9rem">0:00.0 / 0:00.0</span>
+  </div>
+
+  <label>Scope</label>
+  <select id="cgScopeSel"><option value="wave">Waveform (brightness)</option><option value="parade">RGB parade</option><option value="vec">Vectorscope (color)</option><option value="hist">Histogram</option></select>
+  <canvas id="cgScope" width="256" height="160"></canvas>
+
+  <details open><summary>Basic correction</summary><div id="cgBasic"></div></details>
+  <details><summary>Color wheels (shadows, midtones, highlights)</summary>
+    <div class="wheels" id="cgWheels"></div><div id="cgWheelSl"></div>
+  </details>
+  <details><summary>Curves</summary>
+    <div class="tabs" id="cgCurveTabs">
+      <button class="sm" data-c="m" aria-pressed="true">Master</button><button class="sm" data-c="r" aria-pressed="false">Red</button><button class="sm" data-c="g" aria-pressed="false">Green</button><button class="sm" data-c="b" aria-pressed="false">Blue</button>
+    </div>
+    <canvas id="cgCurve" width="300" height="300"></canvas>
+    <div class="btns"><button class="sm" id="cgPtDel">Delete selected point</button><button class="sm" id="cgCurveReset">Reset this curve</button></div>
+    <p class="hint">Tap the line to add a point, drag to bend. Endpoints only move up and down.</p>
+  </details>
+  <details><summary>HSL secondary (change one color only)</summary>
+    <label class="chk"><input type="checkbox" id="cgHslOn"> Enable</label>
+    <div class="btns"><button class="sm" id="cgPick">🎯 Pick color from picture</button><span class="sw" id="cgSwatch"></span></div>
+    <label class="chk"><input type="checkbox" id="cgHslMask"> Show selection (white = affected)</label>
+    <div id="cgHsl"></div>
+  </details>
+  <details><summary>Looks and presets</summary>
+    <div class="row">
+      <div><label>Preset</label><select id="cgPreset"></select></div>
+    </div>
+    <div class="btns" style="margin-top:8px">
+      <button class="sm" id="cgApplyPreset">Apply preset</button>
+      <button class="sm" id="cgReset">Reset all</button>
+      <button class="sm" id="cgSaveLook">Save look (.json)</button>
+      <label class="sm" style="display:inline-block;margin:0">Load look<input type="file" id="cgLoadLook" accept=".json,application/json" hidden></label>
+    </div>
+  </details>
+
+  <div class="row">
+    <div><label>Export size (video)</label>
+      <select id="cgSize"><option value="orig">Original (max 1920)</option><option value="1280">1280 wide</option><option value="854">854 wide (small)</option></select></div>
+  </div>
+  <div class="btns">
+    <button class="go" id="cgExport">Export graded video / photo</button>
+    <button class="go ghost" id="cgCancel" hidden>Cancel export</button>
+  </div>
+  <p class="hint">Photos are saved as PNG. Videos are re-recorded in real time with your grade, so a 2-minute clip takes about 2 minutes. Keep this screen open. Result is MP4 on Safari, WebM on Chrome/Android.</p>
+</section>
+
 <!-- ========== IMAGE TO TEXT ========== -->
 <section id="oc">
   <div class="btns">
@@ -227,6 +347,27 @@ summary{cursor:pointer;font-weight:600;padding:4px 0}
   </div>
 </div>
 <input type="file" id="capFb" accept="image/*" capture="environment" hidden>
+
+<!-- Effects editor -->
+<div class="modal" id="fx" hidden>
+  <div id="fxBox"><canvas id="fxC"></canvas></div>
+  <div class="fxPanel">
+    <label>Effect</label>
+    <select id="fxFilter"><option value="enh">Enhanced (clean paper)</option><option value="bw">Black &amp; white</option><option value="gray">Grayscale</option><option value="vivid">Vivid color</option><option value="sepia">Sepia</option><option value="orig">Original</option></select>
+    <label>Brightness % (50–150)</label>
+    <div class="pair"><input type="range" id="fxBr" min="50" max="150" value="100"><input type="number" id="fxBrN" min="50" max="150" value="100" inputmode="numeric" aria-label="Brightness number"></div>
+    <label>Contrast % (50–150)</label>
+    <div class="pair"><input type="range" id="fxCt" min="50" max="150" value="100"><input type="number" id="fxCtN" min="50" max="150" value="100" inputmode="numeric" aria-label="Contrast number"></div>
+    <label>Sharpen (0–100)</label>
+    <div class="pair"><input type="range" id="fxSh" min="0" max="100" value="0"><input type="number" id="fxShN" min="0" max="100" value="0" inputmode="numeric" aria-label="Sharpen number"></div>
+    <div class="btns" style="margin-top:12px">
+      <button class="go ghost" id="fxReset">Reset</button>
+      <button class="go ghost" id="fxCancel">Cancel</button>
+      <button class="go" id="fxThis">This page</button>
+      <button class="go" id="fxAll">All pages</button>
+    </div>
+  </div>
+</div>
 
 <!-- Corner editor -->
 <div class="modal" id="ed" hidden>
@@ -413,6 +554,18 @@ function homog(dst, src) {
 }
 function applyFilter(img, mode) {
   if (mode === 'orig') return;
+  if (mode === 'gray' || mode === 'sepia' || mode === 'vivid') {
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2], l = .299 * r + .587 * g + .114 * b;
+      let R, G, B;
+      if (mode === 'gray') R = G = B = l;
+      else if (mode === 'sepia') { R = .393*r + .769*g + .189*b; G = .349*r + .686*g + .168*b; B = .272*r + .534*g + .131*b; }
+      else { R = l + (r - l) * 1.5; G = l + (g - l) * 1.5; B = l + (b - l) * 1.5; }
+      d[i] = R > 255 ? 255 : R < 0 ? 0 : R; d[i+1] = G > 255 ? 255 : G < 0 ? 0 : G; d[i+2] = B > 255 ? 255 : B < 0 ? 0 : B;
+    }
+    return;
+  }
   const d = img.data, w = img.width, h = img.height, n = w * h;
   const L = new Uint8Array(n), hist = new Uint32Array(256);
   for (let i = 0; i < n; i++) { L[i] = (.299*d[i*4] + .587*d[i*4+1] + .114*d[i*4+2]) | 0; hist[L[i]]++; }
@@ -440,7 +593,31 @@ function applyFilter(img, mode) {
     }
   }
 }
-function warp(p, maxSide, filter) {
+function sharpen(img, amt) { // unsharp mask: original + amt * (original - blurred)
+  const w = img.width, h = img.height, d = img.data, o = new Uint8ClampedArray(d);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = (y * w + x) * 4;
+    for (let c = 0; c < 3; c++) {
+      let s = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += o[i + (dy * w + dx) * 4 + c];
+      const v = o[i + c] + amt * (o[i + c] - s / 9) * 2;
+      d[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+}
+function applyFx(img, fx) {
+  applyFilter(img, fx.filter);
+  const d = img.data;
+  if (fx.br !== 100 || fx.ct !== 100) {
+    const b = fx.br / 100, c = fx.ct / 100;
+    for (let i = 0; i < d.length; i += 4) for (let ch = 0; ch < 3; ch++) {
+      const v = (d[i+ch] * b - 128) * c + 128; d[i+ch] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+  if (fx.sh > 0) sharpen(img, fx.sh / 100);
+}
+const fxOf = p => p.fx || {filter: $('#scFilter').value, br: 100, ct: 100, sh: 0};
+function warp(p, maxSide, fx) {
   const sw = p.src.width, sh = p.src.height;
   const pts = p.c.map(q => ({x: q.x * sw, y: q.y * sh}));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -463,14 +640,14 @@ function warp(p, maxSide, filter) {
     }
     od[o+3] = 255;
   }
-  applyFilter(out, filter);
+  applyFx(out, fx);
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   cv.getContext('2d').putImageData(out, 0, 0);
   return cv;
 }
 
 // --- page list ---
-function thumbOf(p) { p.thumb = warp(p, 180, $('#scFilter').value).toDataURL('image/jpeg', .7); }
+function thumbOf(p) { p.thumb = warp(p, 180, fxOf(p)).toDataURL('image/jpeg', .7); }
 function drawSc() {
   const ul = $('#scList'); ul.innerHTML = '';
   if (!pages.length) { ul.innerHTML = '<li class="hint" style="border:0">No pages yet. Use the camera or upload photos.</li>'; return; }
@@ -480,6 +657,7 @@ function drawSc() {
     const sp = document.createElement('span'); sp.textContent = 'Page ' + (i + 1); li.append(sp);
     const mk = (t, label, fn) => { const bt = document.createElement('button'); bt.className = 'sm'; bt.textContent = t; bt.title = label; bt.setAttribute('aria-label', label); bt.onclick = fn; li.append(bt); };
     mk('✂', 'Adjust corners', () => openEd(p));
+    mk('🎨', 'Effects', () => openFx(p));
     mk('↻', 'Rotate', () => { rotate(p); thumbOf(p); drawSc(); });
     mk('↑', 'Move up', () => { if (i) { [pages[i-1], pages[i]] = [pages[i], pages[i-1]]; drawSc(); } });
     mk('↓', 'Move down', () => { if (i < pages.length - 1) { [pages[i+1], pages[i]] = [pages[i], pages[i+1]]; drawSc(); } });
@@ -539,9 +717,42 @@ $('#edFull').onclick = () => { edPts = [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}]
 $('#edCancel').onclick = () => $('#ed').hidden = true;
 $('#edDone').onclick = () => { edP.c = edPts; thumbOf(edP); $('#ed').hidden = true; drawSc(); };
 
+
+// --- effects editor (per page, with live preview) ---
+let fxP = null, fxBase = null, fxRaf = 0;
+const FX_DEFAULT = {filter: 'enh', br: 100, ct: 100, sh: 0};
+const fxRead = () => ({filter: $('#fxFilter').value, br: +$('#fxBr').value, ct: +$('#fxCt').value, sh: +$('#fxSh').value});
+function fxSet(f) {
+  $('#fxFilter').value = f.filter;
+  [['Br', f.br], ['Ct', f.ct], ['Sh', f.sh]].forEach(([k, v]) => { $('#fx' + k).value = v; $('#fx' + k + 'N').value = v; });
+}
+function fxDraw() {
+  cancelAnimationFrame(fxRaf);
+  fxRaf = requestAnimationFrame(() => {
+    const c = $('#fxC'); c.width = fxBase.width; c.height = fxBase.height;
+    const x = c.getContext('2d'); x.drawImage(fxBase, 0, 0);
+    const im = x.getImageData(0, 0, c.width, c.height); applyFx(im, fxRead()); x.putImageData(im, 0, 0);
+  });
+}
+function openFx(p) {
+  fxP = p; fxSet(fxOf(p));
+  fxBase = warp(p, 600, {filter: 'orig', br: 100, ct: 100, sh: 0});
+  $('#fx').hidden = false; fxDraw();
+}
+linkNum('#fxBr', '#fxBrN'); linkNum('#fxCt', '#fxCtN'); linkNum('#fxSh', '#fxShN');
+['#fxFilter', '#fxBr', '#fxBrN', '#fxCt', '#fxCtN', '#fxSh', '#fxShN'].forEach(id => { $(id).addEventListener('input', fxDraw); $(id).addEventListener('change', fxDraw); });
+$('#fxReset').onclick = () => { fxSet({...FX_DEFAULT, filter: 'orig'}); fxDraw(); };
+$('#fxCancel').onclick = () => $('#fx').hidden = true;
+$('#fxThis').onclick = () => { fxP.fx = fxRead(); thumbOf(fxP); $('#fx').hidden = true; drawSc(); };
+$('#fxAll').onclick = async () => {
+  const f = fxRead(); $('#fx').hidden = true; say('Applying to all pages...');
+  for (const p of pages) { p.fx = {...f}; thumbOf(p); await sleep(); }
+  drawSc(); say('Effect applied to ' + pages.length + ' page' + (pages.length > 1 ? 's' : '') + ' ✔');
+};
+
 // --- compose pages (heading, title, page number) and build PDF ---
 function compose(p, i, n, o) {
-  const w = warp(p, 1900, o.filter);
+  const w = warp(p, 1900, fxOf(p));
   let Wc = o.size === 'a4' ? 1240 : w.width;
   const u = Wc / 1240;
   const tH = (o.head ? 70 * u : 0) + (i === 0 && o.title ? 120 * u : 0), bH = o.num ? 80 * u : 0;
@@ -966,6 +1177,605 @@ $('#ssGo').onclick = async () => {
   } catch (e) { say('Something went wrong (a PDF may be password-protected): ' + e.message); }
   finally { if (worker) worker.terminate(); }
 };
-</script>
-</body>
-</html>
+
+// =====================================================
+//  MULTICAM VIDEO (sync, live cutting, export)
+// =====================================================
+const MC_COLORS = ['#e5484d', '#3e63dd', '#30a46c', '#f5a623', '#8e4ec6', '#12a594', '#d6409f', '#6e56cf'];
+let tracks = [], mcCuts = [], mcStack = [], mcT = 0, mcPlaying = false, mcWall = 0, mcT0 = 0, mcRaf = 0, mcAudioIdx = 0, mcExporting = false;
+const mcVideoIdx = () => tracks.findIndex(t => t.kind === 'video');
+const mcDur = () => tracks.reduce((m, t) => Math.max(m, t.off + t.dur), 0);
+const camNo = i => tracks.slice(0, i + 1).filter(t => t.kind === 'video').length;
+const mcFmt = t => { const m = Math.floor(t / 60); return m + ':' + (t - m * 60).toFixed(1).padStart(4, '0'); };
+function mcActive(t) {
+  let c = mcVideoIdx();
+  for (const k of mcCuts) { if (k.t <= t + 1e-6) c = k.cam; else break; }
+  return c;
+}
+function mcDrawTo(x, W, H, t, overlay) {
+  x.fillStyle = '#000'; x.fillRect(0, 0, W, H);
+  const ci = mcActive(t), tr = tracks[ci]; if (!tr) return;
+  const px = t - tr.off, v = tr.el;
+  if (px >= 0 && px <= tr.dur && v.readyState >= 2 && v.videoWidth) {
+    const k = Math.min(W / v.videoWidth, H / v.videoHeight), w = v.videoWidth * k, h = v.videoHeight * k;
+    x.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
+  }
+  if (overlay) {
+    x.fillStyle = MC_COLORS[ci % 8]; x.fillRect(8, 8, 74, 26);
+    x.fillStyle = '#fff'; x.font = 'bold 15px system-ui'; x.textBaseline = 'middle'; x.textAlign = 'left';
+    x.fillText('CAM ' + camNo(ci), 16, 21);
+  }
+}
+function mcDraw() { const c = $('#mcProg'); mcDrawTo(c.getContext('2d'), c.width, c.height, mcT, true); }
+function mcBar() {
+  const bar = $('#mcBar'), d = mcDur();
+  bar.querySelectorAll('.seg').forEach(e => e.remove());
+  if (d) mcCuts.forEach((k, i) => {
+    const end = i + 1 < mcCuts.length ? mcCuts[i + 1].t : d, sg = document.createElement('div');
+    sg.className = 'seg';
+    sg.style.cssText = `left:${k.t / d * 100}%;width:${Math.max(0, end - k.t) / d * 100}%;background:${MC_COLORS[k.cam % 8]}`;
+    bar.prepend(sg);
+  });
+  $('#mcCutN').textContent = mcCuts.length + (mcCuts.length === 1 ? ' cut' : ' cuts');
+}
+function mcUI() {
+  const d = mcDur(), sl = $('#mcSeek');
+  sl.max = d || 1; sl.value = mcT;
+  $('#mcTime').textContent = mcFmt(mcT) + ' / ' + mcFmt(d);
+  const act = mcActive(mcT);
+  document.querySelectorAll('.cam').forEach(b => b.classList.toggle('live', +b.dataset.i === act));
+  $('#mcHead').style.left = (d ? Math.min(100, mcT / d * 100) : 0) + '%';
+  $('#mcPlay').textContent = mcPlaying ? '❚❚' : '▶';
+}
+function mcSeekAll(t) {
+  tracks.forEach(tr => { const x = t - tr.off; if (x >= 0 && x <= tr.dur) tr.el.currentTime = x; });
+}
+function mcSyncEls(t, force) {
+  tracks.forEach(tr => {
+    const x = t - tr.off, inside = x >= 0 && x < tr.dur;
+    if (inside) {
+      if (force || Math.abs(tr.el.currentTime - x) > .25) tr.el.currentTime = x;
+      if (tr.el.paused && mcPlaying) tr.el.play().catch(() => {});
+    } else if (!tr.el.paused) tr.el.pause();
+  });
+}
+function mcLoop() {
+  if (!mcPlaying || mcExporting) return;
+  mcT = mcT0 + (performance.now() - mcWall) / 1000;
+  const d = mcDur();
+  if (mcT >= d) { mcT = d; mcPause(); mcUI(); mcDraw(); return; }
+  mcSyncEls(mcT, false); mcUI(); mcDraw();
+  mcRaf = requestAnimationFrame(mcLoop);
+}
+function mcPlay() {
+  if (!tracks.length) return say('Add camera videos first.');
+  if (mcT >= mcDur()) mcT = 0;
+  mcPlaying = true; mcT0 = mcT; mcWall = performance.now();
+  mcSyncEls(mcT, true); mcRaf = requestAnimationFrame(mcLoop); mcUI();
+}
+function mcPause() {
+  mcPlaying = false; cancelAnimationFrame(mcRaf);
+  tracks.forEach(t => t.el.pause()); mcUI();
+}
+$('#mcPlay').onclick = () => mcPlaying ? mcPause() : mcPlay();
+$('#mcSeek').oninput = e => {
+  mcT = +e.target.value;
+  if (mcPlaying) { mcT0 = mcT; mcWall = performance.now(); mcSyncEls(mcT, true); } else mcSeekAll(mcT);
+  mcUI(); mcDraw();
+};
+$('#mcBar').onclick = e => {
+  const r = $('#mcBar').getBoundingClientRect(), d = mcDur(); if (!d) return;
+  $('#mcSeek').value = Math.max(0, Math.min(d, (e.clientX - r.left) / r.width * d)); $('#mcSeek').oninput({target: $('#mcSeek')});
+};
+
+// --- cutting ---
+function mcCut(i) {
+  const t = Math.round(mcT * 100) / 100;
+  if (mcActive(t) === i && (mcCuts.length || t < .05)) { say('Already on CAM ' + camNo(i) + ' here.'); return; }
+  let k;
+  if (t < .05) { mcCuts[0] = k = {t: 0, cam: i}; }
+  else { mcCuts = mcCuts.filter(c => Math.abs(c.t - t) > .05 || c.t === 0); k = {t, cam: i}; mcCuts.push(k); mcCuts.sort((a, b) => a.t - b.t); }
+  mcStack.push(k); mcBar(); mcUI(); mcDraw();
+  say('Cut to CAM ' + camNo(i) + ' at ' + mcFmt(t));
+}
+$('#mcUndo').onclick = () => {
+  while (mcStack.length) {
+    const k = mcStack.pop(), at = mcCuts.indexOf(k);
+    if (at > 0) { mcCuts.splice(at, 1); break; }
+  }
+  mcBar(); mcUI(); mcDraw();
+};
+$('#mcClear').onclick = () => { const v = mcVideoIdx(); mcCuts = v >= 0 ? [{t: 0, cam: v}] : []; mcStack = []; mcBar(); mcUI(); mcDraw(); };
+document.addEventListener('keydown', e => {
+  if (!$('#mc').classList.contains('on') || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); $('#mcPlay').click(); return; }
+  if (/^[1-9]$/.test(e.key)) {
+    const vids = tracks.map((t, i) => t.kind === 'video' ? i : -1).filter(i => i >= 0), i = vids[+e.key - 1];
+    if (i !== undefined) mcCut(i);
+  }
+});
+
+// --- tracks ---
+function mcNormalize() {
+  const mn = Math.min(...tracks.map(t => t.off));
+  if (!tracks.length || mn === 0) return;
+  tracks.forEach(t => t.off -= mn);
+  mcCuts.forEach((k, i) => k.t = i === 0 ? 0 : Math.max(0, k.t - mn));
+}
+function mcSetOff(i, v) {
+  tracks[i].off = v; mcNormalize();
+  document.querySelectorAll('.offin').forEach(inp => inp.value = tracks[+inp.dataset.i].off.toFixed(2));
+  if (!mcPlaying) mcSeekAll(mcT);
+  mcBar(); mcUI(); mcDraw();
+}
+function mcRender() {
+  if (mcPlaying) mcPause();
+  const g = $('#mcGrid'), al = $('#mcAudioList'), sel = $('#mcAudioSel');
+  g.innerHTML = ''; al.innerHTML = ''; sel.innerHTML = '<option value="-1">No audio</option>';
+  if (mcAudioIdx >= tracks.length) mcAudioIdx = tracks.length ? 0 : 0;
+  tracks.forEach((tr, i) => {
+    const o = document.createElement('option'); o.value = i;
+    o.textContent = tr.kind === 'video' ? 'Camera ' + camNo(i) + ' sound' : 'Separate: ' + tr.name; sel.append(o);
+    tr.el.muted = i !== mcAudioIdx;
+    const mkBtn = (t, label, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = t; b.title = label; b.setAttribute('aria-label', label); b.onclick = fn; return b; };
+    const off = document.createElement('div'); off.className = 'offrow';
+    const inp = document.createElement('input'); inp.type = 'number'; inp.step = '0.05'; inp.className = 'offin'; inp.dataset.i = i; inp.value = tr.off.toFixed(2);
+    inp.setAttribute('aria-label', 'Offset in seconds'); inp.onchange = () => mcSetOff(i, parseFloat(inp.value) || 0);
+    off.append('Start', mkBtn('◀', 'Earlier', () => mcSetOff(i, tr.off - .04)), inp, mkBtn('▶', 'Later', () => mcSetOff(i, tr.off + .04)), 's');
+    const rm = mkBtn('✕', 'Remove', () => mcRemove(i));
+    if (tr.kind === 'video') {
+      const box = document.createElement('div'); box.className = 'cam'; box.dataset.i = i;
+      const cap = document.createElement('div'); cap.className = 'cap';
+      const dot = document.createElement('b'); dot.textContent = camNo(i); dot.style.cssText = `background:${MC_COLORS[i % 8]};color:#fff;border-radius:4px;padding:0 6px`;
+      const nm = document.createElement('span'); nm.textContent = tr.name;
+      cap.append(dot, nm, rm);
+      tr.el.className = ''; tr.el.onclick = () => mcCut(i);
+      const cb = document.createElement('button'); cb.className = 'cutbtn'; cb.textContent = 'Cut to CAM ' + camNo(i); cb.onclick = () => mcCut(i);
+      box.append(cap, tr.el, cb, off); g.append(box);
+    } else {
+      const li = document.createElement('li'); li.innerHTML = '<span></span>'; li.firstChild.textContent = '🎙 ' + tr.name;
+      const holder = document.createElement('div'); holder.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;overflow:hidden'; holder.append(tr.el);
+      li.append(off, rm, holder); al.append(li);
+    }
+  });
+  sel.value = tracks.length ? mcAudioIdx : -1;
+  mcBar(); mcUI(); mcDraw();
+}
+$('#mcAudioSel').onchange = e => { mcAudioIdx = +e.target.value; tracks.forEach((t, i) => t.el.muted = i !== mcAudioIdx); };
+function mcRemove(i) {
+  mcPause(); URL.revokeObjectURL(tracks[i].url); tracks.splice(i, 1);
+  mcCuts = mcCuts.filter(k => k.cam !== i).map(k => ({...k, cam: k.cam > i ? k.cam - 1 : k.cam}));
+  const v = mcVideoIdx();
+  if (v < 0) mcCuts = []; else if (!mcCuts.length || mcCuts[0].t > 0) mcCuts.unshift({t: 0, cam: v});
+  mcStack = [];
+  mcAudioIdx = mcAudioIdx === i ? 0 : mcAudioIdx > i ? mcAudioIdx - 1 : mcAudioIdx;
+  mcNormalize(); mcT = Math.min(mcT, mcDur()); mcRender();
+}
+async function mcAdd(file, kind) {
+  const el = document.createElement('video');
+  el.playsInline = true; el.muted = true; el.preload = 'auto'; el.src = URL.createObjectURL(file);
+  await new Promise((res, rej) => { el.onloadedmetadata = res; el.onerror = () => rej(new Error('This file cannot be played by your browser: ' + file.name)); });
+  if (!isFinite(el.duration) || !el.duration) throw new Error('Could not read the length of ' + file.name);
+  const hadVideo = mcVideoIdx() >= 0;
+  tracks.push({kind, name: file.name, file, url: el.src, el, dur: el.duration, off: 0});
+  if (kind === 'video' && !hadVideo) mcCuts = [{t: 0, cam: tracks.length - 1}];
+  el.addEventListener('seeked', () => { if (!mcPlaying && !mcExporting) mcDraw(); });
+  el.addEventListener('loadeddata', () => { if (!mcPlaying && !mcExporting) mcDraw(); });
+}
+$('#mcFiles').onchange = async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  for (const f of files) { if (tracks.filter(t => t.kind === 'video').length >= 8) { say('Up to 8 cameras are supported.'); break; } try { say('Loading ' + f.name + '...'); await mcAdd(f, 'video'); } catch (err) { say(err.message); } }
+  mcRender(); say(tracks.length > 1 ? 'Now press "Auto-sync by sound".' : '');
+};
+$('#mcAudio').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { say('Loading ' + f.name + '...'); await mcAdd(f, 'audio'); mcRender(); say('Separate audio added. Press "Auto-sync by sound", then choose it as the audio source.'); } catch (err) { say(err.message); }
+};
+
+// --- auto-sync by comparing loudness patterns of the sound ---
+async function mcEnvelope(file) {
+  const AC = window.AudioContext || window.webkitAudioContext, ac = new AC();
+  try {
+    const buf = await ac.decodeAudioData(await file.arrayBuffer());
+    const ch = buf.getChannelData(0), win = Math.round(buf.sampleRate / 50), n = Math.min(9000, Math.floor(ch.length / win));
+    const e = new Float32Array(n);
+    for (let i = 0; i < n; i++) { let sum = 0; for (let j = 0; j < win; j++) sum += Math.abs(ch[i * win + j]); e[i] = sum / win; }
+    let m = 0; for (const v of e) m += v; m /= n;
+    let sd = 0; for (const v of e) sd += (v - m) ** 2; sd = Math.sqrt(sd / n) || 1;
+    for (let i = 0; i < n; i++) e[i] = (e[i] - m) / sd;
+    return e;
+  } finally { ac.close(); }
+}
+function mcBestLag(r, c, maxLag) { // lag D such that c[n - D] matches r[n]
+  let best = -1e9, bd = 0;
+  for (let D = -maxLag; D <= maxLag; D++) {
+    const lo = Math.max(0, D), hi = Math.min(r.length, c.length + D); let s = 0, cnt = 0;
+    for (let n = lo; n < hi; n++) { s += r[n] * c[n - D]; cnt++; }
+    if (cnt < Math.min(r.length, c.length) * .2) continue;
+    s /= cnt; if (s > best) { best = s; bd = D; }
+  }
+  return {lag: bd, score: best};
+}
+$('#mcSync').onclick = async () => {
+  if (tracks.length < 2) return say('Add at least two videos (or a video and a separate audio) first.');
+  mcPause();
+  try {
+    say('Reading sound of ' + tracks[0].name + '...');
+    const ref = await mcEnvelope(tracks[0].file); let low = [];
+    tracks[0].off = 0;
+    for (let i = 1; i < tracks.length; i++) {
+      say('Matching ' + tracks[i].name + '... (' + i + '/' + (tracks.length - 1) + ')'); await sleep();
+      const env = await mcEnvelope(tracks[i].file), {lag, score} = mcBestLag(ref, env, 2250);
+      tracks[i].off = lag * .02; if (score < .15) low.push(tracks[i].name);
+    }
+    mcNormalize(); mcT = 0; mcRender(); mcSeekAll(0); mcDraw();
+    say('Synced ✔' + (low.length ? ' Not sure about: ' + low.join(', ') + '. Check them and fine-tune with ◀ ▶.' : ' Fine-tune with ◀ ▶ if needed.'));
+  } catch (e) { say('Auto-sync failed (the file may be too large or have no sound). Set the Start times by hand. ' + e.message); }
+};
+
+// --- export (records the program canvas + chosen audio in real time) ---
+let mcCancel = false;
+$('#mcCancel').onclick = () => { mcCancel = true; };
+$('#mcExport').onclick = async () => {
+  if (mcVideoIdx() < 0) return say('Add camera videos first.');
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return say('This browser cannot record video. Try Chrome, or Safari 14.1 or newer.');
+  mcPause();
+  const [W, H] = $('#mcSize').value.split('x').map(Number), dur = mcDur(), aTr = tracks[mcAudioIdx];
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d'), stream = cv.captureStream(30), pv = $('#mcProg').getContext('2d');
+  let ac = null, exA = null, wake = null;
+  try {
+    if (aTr && mcAudioIdx >= 0 && !$('#mcAudioSel').value.startsWith('-')) {
+      const AC = window.AudioContext || window.webkitAudioContext; ac = new AC(); await ac.resume();
+      exA = document.createElement('video'); exA.playsInline = true; exA.src = aTr.url;
+      const holder = document.createElement('div'); holder.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;overflow:hidden'; holder.append(exA); document.body.append(holder); exA.holder = holder;
+      const dst = ac.createMediaStreamDestination(); ac.createMediaElementSource(exA).connect(dst);
+      stream.addTrack(dst.stream.getAudioTracks()[0]);
+    }
+    const mime = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+    const rec = new MediaRecorder(stream, mime ? {mimeType: mime, videoBitsPerSecond: 5e6} : {videoBitsPerSecond: 5e6}), chunks = [];
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    const done = new Promise(r => rec.onstop = r);
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
+    tracks.forEach(t => t.el.muted = true);
+    mcExporting = true; mcCancel = false; mcPlaying = true;
+    $('#mcExport').hidden = true; $('#mcCancel').hidden = false;
+    say('Getting ready...');
+    mcT = 0; mcSeekAll(0); if (exA) exA.currentTime = Math.max(0, -aTr.off);
+    await new Promise(r => setTimeout(r, 600));
+    rec.start(500);
+    const wall = performance.now();
+    await new Promise(resolve => {
+      const frame = () => {
+        const t = (performance.now() - wall) / 1000;
+        if (mcCancel || t >= dur) return resolve();
+        mcT = t; mcSyncEls(t, false);
+        if (exA) {
+          const x = t - aTr.off;
+          if (x >= 0 && x < aTr.dur) { if (Math.abs(exA.currentTime - x) > .25) exA.currentTime = x; if (exA.paused) exA.play().catch(() => {}); } else if (!exA.paused) exA.pause();
+        }
+        mcDrawTo(cx, W, H, t, false); pv.drawImage(cv, 0, 0, $('#mcProg').width, $('#mcProg').height);
+        mcUI(); say('Exporting ' + Math.round(t / dur * 100) + '% — keep this screen open');
+        requestAnimationFrame(frame);
+      };
+      frame();
+    });
+    rec.stop(); await done;
+    if (mcCancel) say('Export cancelled.');
+    else {
+      const blob = new Blob(chunks, {type: rec.mimeType || mime || 'video/webm'});
+      download(blob, 'multicam-edit.' + (blob.type.includes('mp4') ? 'mp4' : 'webm'), blob.type);
+      say('Done ✔ ' + fmtSize(blob.size));
+    }
+  } catch (e) { say('Export failed: ' + e.message); }
+  finally {
+    mcExporting = false; mcPlaying = false; tracks.forEach(t => t.el.pause());
+    tracks.forEach((t, i) => t.el.muted = i !== mcAudioIdx);
+    if (exA) { exA.pause(); exA.holder.remove(); } if (ac) ac.close(); if (wake) wake.release().catch(() => {});
+    $('#mcExport').hidden = false; $('#mcCancel').hidden = true; mcT = 0; mcSeekAll(0); mcUI(); mcDraw();
+  }
+};
+
+// =====================================================
+//  COLOR GRADE (WebGL grading, curves, wheels, HSL, scopes)
+// =====================================================
+const CG0 = () => ({exp: 0, con: 0, hi: 0, sh: 0, wh: 0, bl: 0, temp: 0, tint: 0, sat: 100, vib: 0, vig: 0,
+  liftM: 0, gammaM: 0, gainM: 0,
+  wheels: {lift: {x: 0, y: 0}, gamma: {x: 0, y: 0}, gain: {x: 0, y: 0}},
+  curves: {m: [[0, 0], [1, 1]], r: [[0, 0], [1, 1]], g: [[0, 0], [1, 1]], b: [[0, 0], [1, 1]]},
+  hsl: {on: false, hue: 30, range: 30, soft: 50, shift: 0, sat: 100, lum: 0, mask: false}});
+let CG = CG0(), cgSrc = null, cgKind = '', cgSrcDirty = true, cgLutDirty = true, cgRaf = 0, cgBypass = false, cgExporting = false, cgCancel = false;
+let cgCurveCh = 'm', cgSel = -1, cgPickMode = false;
+const cgReg = [], cgSm = document.createElement('canvas');
+const cgCv = $('#cgView');
+const gl = cgCv.getContext('webgl', {preserveDrawingBuffer: true, antialias: false}) || cgCv.getContext('experimental-webgl', {preserveDrawingBuffer: true});
+
+// ----- curve math (monotone cubic spline) -----
+function cgSpline(pts) {
+  const n = pts.length, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), d = [], m = [];
+  for (let i = 0; i < n - 1; i++) d[i] = (ys[i+1] - ys[i]) / ((xs[i+1] - xs[i]) || 1e-6);
+  m[0] = d[0]; m[n-1] = d[n-2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i-1] * d[i] <= 0 ? 0 : (d[i-1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i+1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i+1] / d[i], q = a * a + b * b;
+    if (q > 9) { const t = 3 / Math.sqrt(q); m[i] = t * a * d[i]; m[i+1] = t * b * d[i]; }
+  }
+  return x => {
+    if (x <= xs[0]) return ys[0]; if (x >= xs[n-1]) return ys[n-1];
+    let k = 0; while (x > xs[k+1]) k++;
+    const h = xs[k+1] - xs[k], t = (x - xs[k]) / h, t2 = t * t, t3 = t2 * t;
+    return (2*t3 - 3*t2 + 1) * ys[k] + (t3 - 2*t2 + t) * h * m[k] + (-2*t3 + 3*t2) * ys[k+1] + (t3 - t2) * h * m[k+1];
+  };
+}
+function cgLut(c) { // 256 x RGBA: master curve first, then each color curve
+  const fm = cgSpline(c.m), fr = cgSpline(c.r), fg = cgSpline(c.g), fb = cgSpline(c.b), o = new Uint8Array(1024);
+  const q = v => Math.round(Math.min(1, Math.max(0, v)) * 255), cl = v => Math.min(1, Math.max(0, v));
+  for (let i = 0; i < 256; i++) {
+    const mv = cl(fm(i / 255));
+    o[i*4] = q(fr(mv)); o[i*4+1] = q(fg(mv)); o[i*4+2] = q(fb(mv)); o[i*4+3] = 255;
+  }
+  return o;
+}
+const cgPolar = (deg, m) => { const t = deg * Math.PI / 180; return {x: m * Math.cos(t), y: -m * Math.sin(t)}; };
+function cgWheelVec(w) {
+  const mag = Math.min(1, Math.hypot(w.x, w.y)), th = Math.atan2(-w.y, w.x);
+  return [0, 1, 2].map(i => mag * Math.cos(th - i * 2 * Math.PI / 3));
+}
+function cgHue(r, g, b) {
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return 0;
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h *= 60; return h < 0 ? h + 360 : h;
+}
+
+// ----- WebGL pipeline -----
+const CG_FS = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 vUv;
+uniform sampler2D uTex, uLut;
+uniform float uBypass, uExp, uCon, uHi, uSh, uWh, uBl, uTemp, uTint, uSat, uVib, uVig, uAspect;
+uniform vec3 uLift, uGain, uGamma;
+uniform float uHslOn, uHslHue, uHslRange, uHslSoft, uHslShift, uHslSat, uHslLum, uHslMask;
+const vec3 LW = vec3(0.2126, 0.7152, 0.0722);
+vec3 rgb2hsv(vec3 c) {
+  vec4 K = vec4(0., -1./3., 2./3., -1.);
+  vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+  vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+  float d = q.x - min(q.w, q.y); float e = 1e-10;
+  return vec3(abs(q.z + (q.w - q.y) / (6. * d + e)), d / (q.x + e), q.x);
+}
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1., 2./3., 1./3., 3.);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6. - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0., 1.), c.y);
+}
+void main() {
+  vec3 src = texture2D(uTex, vUv).rgb;
+  if (uBypass > .5) { gl_FragColor = vec4(src, 1.); return; }
+  vec3 c = src * uExp;
+  c.r += uTemp * 0.10; c.b -= uTemp * 0.10;
+  c.g -= uTint * 0.06; c.r += uTint * 0.03; c.b += uTint * 0.03;
+  c = (c - .5) * uCon + .5;
+  float l = dot(c, LW);
+  c += uSh * 0.35 * (1. - smoothstep(0., .5, l));
+  c += uHi * 0.35 * smoothstep(.5, 1., l);
+  c += uWh * 0.20 * smoothstep(.7, 1., l);
+  c += uBl * 0.20 * (1. - smoothstep(0., .3, l));
+  c = clamp(c, 0., 1.);
+  c = c * uGain + uLift * (1. - c);
+  c = pow(clamp(c, 0., 1.), uGamma);
+  l = dot(c, LW);
+  float cs = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+  c = mix(vec3(l), c, uSat);
+  c = mix(vec3(l), c, 1. + uVib * (1. - cs));
+  c = clamp(c, 0., 1.);
+  if (uHslOn > .5) {
+    vec3 hsv = rgb2hsv(c);
+    float dh = abs(hsv.x - uHslHue); dh = min(dh, 1. - dh);
+    float e0 = min(uHslRange * (1. - uHslSoft), uHslRange - 0.002);
+    float mask = (1. - smoothstep(e0, uHslRange, dh)) * smoothstep(0.03, 0.15, hsv.y);
+    if (uHslMask > .5) { gl_FragColor = vec4(vec3(mask), 1.); return; }
+    hsv.x = fract(hsv.x + uHslShift * mask);
+    hsv.y = clamp(hsv.y * mix(1., uHslSat, mask), 0., 1.);
+    hsv.z = clamp(hsv.z + uHslLum * mask, 0., 1.);
+    c = hsv2rgb(hsv);
+  }
+  vec3 idx = (clamp(c, 0., 1.) * 255. + .5) / 256.;
+  c = vec3(texture2D(uLut, vec2(idx.r, .5)).r, texture2D(uLut, vec2(idx.g, .5)).g, texture2D(uLut, vec2(idx.b, .5)).b);
+  vec2 dd = (vUv - .5) * vec2(uAspect, 1.);
+  float v = smoothstep(.25, .9, length(dd) * 1.3);
+  c *= 1. - uVig * .85 * v;
+  gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+}`;
+const CG_VS = 'attribute vec2 p; varying vec2 vUv; void main(){ vUv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }';
+let cgProg = null, cgTex = null, cgLutTex = null; const cgLocs = {};
+function cgShader(type, src) {
+  const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+  return sh;
+}
+function cgInitGL() {
+  cgProg = gl.createProgram();
+  gl.attachShader(cgProg, cgShader(gl.VERTEX_SHADER, CG_VS)); gl.attachShader(cgProg, cgShader(gl.FRAGMENT_SHADER, CG_FS));
+  gl.linkProgram(cgProg); if (!gl.getProgramParameter(cgProg, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(cgProg));
+  gl.useProgram(cgProg);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(cgProg, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const mk = unit => {
+    const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  };
+  cgTex = mk(0); cgLutTex = mk(1);
+  gl.uniform1i(L('uTex'), 0); gl.uniform1i(L('uLut'), 1);
+}
+const L = n => cgLocs[n] !== undefined ? cgLocs[n] : (cgLocs[n] = gl.getUniformLocation(cgProg, n));
+function cgSetUniforms() {
+  const s = CG, f = (n, v) => gl.uniform1f(L(n), v), v3 = (n, a) => gl.uniform3f(L(n), a[0], a[1], a[2]);
+  f('uBypass', cgBypass ? 1 : 0); f('uExp', Math.pow(2, s.exp)); f('uCon', 1 + s.con / 100);
+  f('uHi', s.hi / 100); f('uSh', s.sh / 100); f('uWh', s.wh / 100); f('uBl', s.bl / 100);
+  f('uTemp', s.temp / 100); f('uTint', s.tint / 100); f('uSat', s.sat / 100); f('uVib', s.vib / 100); f('uVig', s.vig / 100);
+  f('uAspect', cgCv.width / cgCv.height);
+  v3('uLift', cgWheelVec(s.wheels.lift).map(v => v * .25 + s.liftM / 100 * .2));
+  v3('uGain', cgWheelVec(s.wheels.gain).map(v => 1 + v * .6 + s.gainM / 100 * .6));
+  v3('uGamma', cgWheelVec(s.wheels.gamma).map(v => 1 / Math.min(2.5, Math.max(.4, 1 + v * .6 + s.gammaM / 100 * .6))));
+  const h = s.hsl;
+  f('uHslOn', h.on ? 1 : 0); f('uHslHue', h.hue / 360); f('uHslRange', Math.max(.004, h.range / 360)); f('uHslSoft', Math.min(.95, h.soft / 100));
+  f('uHslShift', h.shift / 360); f('uHslSat', h.sat / 100); f('uHslLum', h.lum / 100); f('uHslMask', h.mask ? 1 : 0);
+}
+const cgSrcSize = () => cgKind === 'video' ? [cgSrc.videoWidth, cgSrc.videoHeight] : [cgSrc.naturalWidth, cgSrc.naturalHeight];
+function cgPreviewSize() {
+  const [w, h] = cgSrcSize(), k = Math.min(1, 1280 / Math.max(w, h));
+  cgCv.width = Math.max(2, Math.round(w * k)); cgCv.height = Math.max(2, Math.round(h * k));
+}
+function cgRender() {
+  if (!gl || !cgSrc || !cgProg) return;
+  if (cgKind === 'video' && (cgSrc.readyState < 2 || !cgSrc.videoWidth)) return;
+  gl.viewport(0, 0, cgCv.width, cgCv.height);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  if (cgKind === 'video' || cgSrcDirty) {
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, cgTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cgSrc); cgSrcDirty = false;
+  }
+  if (cgLutDirty) {
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, cgLutTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, cgLut(CG.curves)); cgLutDirty = false;
+  }
+  cgSetUniforms(); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  cgScopes();
+}
+function cgDirty(lut) { if (lut) cgLutDirty = true; if (!cgRaf) cgRaf = requestAnimationFrame(() => { cgRaf = 0; cgRender(); }); }
+
+// ----- scopes -----
+function cgScopes() {
+  const W = cgCv.width, H = cgCv.height, sw = Math.min(192, W), sh = Math.max(1, Math.round(sw * H / W));
+  cgSm.width = sw; cgSm.height = sh;
+  const sx = cgSm.getContext('2d', {willReadFrequently: true}); sx.drawImage(cgCv, 0, 0, sw, sh);
+  const d = sx.getImageData(0, 0, sw, sh).data, type = $('#cgScopeSel').value;
+  const c = $('#cgScope'), x = c.getContext('2d'), SW = 256, SH = 160;
+  x.fillStyle = '#0b0f0e'; x.fillRect(0, 0, SW, SH);
+  const grat = () => {
+    x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1; x.beginPath();
+    for (let p = 0; p <= 4; p++) { const y = Math.round((SH - 1) * (1 - p / 4)) + .5; x.moveTo(0, y); x.lineTo(SW, y); }
+    x.stroke();
+  };
+  if (type === 'wave' || type === 'parade') {
+    const acc = [new Float32Array(SW * SH), new Float32Array(SW * SH), new Float32Array(SW * SH)];
+    const cols = type === 'wave' ? SW : 85;
+    for (let py = 0; py < sh; py++) for (let px = 0; px < sw; px++) {
+      const i = (py * sw + px) * 4, r = d[i], g = d[i+1], b = d[i+2];
+      const c0 = Math.floor(px * cols / sw), c1 = Math.max(c0 + 1, Math.floor((px + 1) * cols / sw));
+      if (type === 'wave') {
+        const row = SH - 1 - Math.round((.2126 * r + .7152 * g + .0722 * b) / 255 * (SH - 1));
+        for (let cc = c0; cc < c1; cc++) acc[0][row * SW + cc]++;
+      } else {
+        [r, g, b].forEach((v, ch) => { const row = SH - 1 - Math.round(v / 255 * (SH - 1)); for (let cc = c0; cc < c1; cc++) acc[ch][row * SW + ch * 85 + cc]++; });
+      }
+    }
+    const img = x.getImageData(0, 0, SW, SH), o = img.data;
+    const col = type === 'wave' ? [[70, 255, 140]] : [[255, 70, 70], [70, 255, 90], [80, 130, 255]];
+    for (let i = 0; i < SW * SH; i++) col.forEach((cl, ch) => {
+      const v = Math.min(1, acc[ch][i] * .45); if (!v) return;
+      o[i*4] = Math.min(255, o[i*4] + cl[0] * v); o[i*4+1] = Math.min(255, o[i*4+1] + cl[1] * v); o[i*4+2] = Math.min(255, o[i*4+2] + cl[2] * v);
+    });
+    x.putImageData(img, 0, 0); grat();
+  } else if (type === 'vec') {
+    const cx = SW / 2, cy = SH / 2;
+    x.strokeStyle = 'rgba(255,255,255,.22)'; x.lineWidth = 1;
+    [40, 78].forEach(r => { x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke(); });
+    x.beginPath(); x.moveTo(cx - 80, cy); x.lineTo(cx + 80, cy); x.moveTo(cx, cy - 80); x.lineTo(cx, cy + 80); x.stroke();
+    x.strokeStyle = 'rgba(255,200,120,.55)'; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx - 47, cy - 62); x.stroke();
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      const cb = -.168736 * r - .331264 * g + .5 * b, cr = .5 * r - .418688 * g - .081312 * b;
+      x.fillStyle = `rgba(${r},${g},${b},.6)`; x.fillRect(Math.round(cx + cb * .6), Math.round(cy - cr * .6), 1, 1);
+    }
+  } else {
+    const bins = [new Float32Array(256), new Float32Array(256), new Float32Array(256), new Float32Array(256)];
+    for (let i = 0; i < d.length; i += 4) {
+      bins[0][d[i]]++; bins[1][d[i+1]]++; bins[2][d[i+2]]++; bins[3][Math.round(.2126 * d[i] + .7152 * d[i+1] + .0722 * d[i+2])]++;
+    }
+    let mx = 1; bins.forEach(b => { for (let i = 1; i < 255; i++) mx = Math.max(mx, b[i]); });
+    x.globalCompositeOperation = 'lighter';
+    ['rgba(255,50,50,.85)', 'rgba(50,255,80,.85)', 'rgba(70,110,255,.85)'].forEach((cl, ch) => {
+      x.fillStyle = cl; for (let i = 0; i < 256; i++) { const h = Math.min(1, bins[ch][i] / mx) * (SH - 4); x.fillRect(i, SH - h, 1, h); }
+    });
+    x.globalCompositeOperation = 'source-over'; x.strokeStyle = 'rgba(255,255,255,.9)'; x.beginPath();
+    for (let i = 0; i < 256; i++) { const y = SH - Math.min(1, bins[3][i] / mx) * (SH - 4); i ? x.lineTo(i, y) : x.moveTo(i, y); }
+    x.stroke();
+  }
+}
+$('#cgScopeSel').onchange = () => cgDirty();
+
+// ----- sliders -----
+function cgSlider(parent, label, get, set, min, max, step) {
+  const w = document.createElement('div'), lb = document.createElement('label'), pair = document.createElement('div');
+  lb.textContent = label + ' (' + min + ' to ' + max + ')'; pair.className = 'pair';
+  const r = document.createElement('input'), n = document.createElement('input');
+  r.type = 'range'; n.type = 'number';
+  [r, n].forEach(e => { e.min = min; e.max = max; e.step = step; });
+  n.inputMode = 'decimal'; n.setAttribute('aria-label', label + ' number'); r.setAttribute('aria-label', label);
+  const clamp = v => Math.min(max, Math.max(min, v));
+  r.oninput = () => { n.value = r.value; set(+r.value); cgDirty(); };
+  n.oninput = () => { const v = parseFloat(n.value); if (!isNaN(v)) { r.value = clamp(v); set(clamp(v)); cgDirty(); } };
+  n.onchange = () => { let v = parseFloat(n.value); if (isNaN(v)) v = get(); v = clamp(v); n.value = r.value = v; set(v); cgDirty(); };
+  pair.append(r, n); w.append(lb, pair); parent.append(w);
+  cgReg.push(() => { r.value = n.value = get(); });
+}
+const cgB = $('#cgBasic');
+[['Exposure (stops)', 'exp', -2, 2, .05], ['Contrast', 'con', -100, 100, 1], ['Highlights', 'hi', -100, 100, 1], ['Shadows', 'sh', -100, 100, 1],
+ ['Whites', 'wh', -100, 100, 1], ['Blacks', 'bl', -100, 100, 1], ['Temperature (cool ↔ warm)', 'temp', -100, 100, 1], ['Tint (green ↔ magenta)', 'tint', -100, 100, 1],
+ ['Saturation %', 'sat', 0, 200, 1], ['Vibrance', 'vib', -100, 100, 1], ['Vignette', 'vig', -100, 100, 1]]
+  .forEach(([t, k, a, b, st]) => cgSlider(cgB, t.replace(/ \(.*$/, '') === t ? t : t, () => CG[k], v => CG[k] = v, a, b, st));
+// color wheels
+const WHEELS = [['lift', 'Shadows (lift)', 'liftM'], ['gamma', 'Midtones (gamma)', 'gammaM'], ['gain', 'Highlights (gain)', 'gainM']], R = 56;
+const ringCv = document.createElement('canvas'); ringCv.width = ringCv.height = 120;
+(function () {
+  const x = ringCv.getContext('2d'), im = x.createImageData(120, 120);
+  for (let py = 0; py < 120; py++) for (let px = 0; px < 120; px++) {
+    const dx = px - 60, dy = py - 60, dist = Math.hypot(dx, dy), i = (py * 120 + px) * 4;
+    if (dist > R) continue;
+    const th = Math.atan2(-dy, dx), sat = dist / R;
+    [0, 1, 2].forEach(ch => { const v = .5 + (.5 * Math.cos(th - ch * 2 * Math.PI / 3) - .25) * sat * 1.6; im.data[i+ch] = Math.max(0, Math.min(255, v * 255)); });
+    im.data[i+3] = 255;
+  }
+  x.putImageData(im, 0, 0);
+})();
+const cgWheelCv = {};
+function drawWheel(k) {
+  const c = cgWheelCv[k], x = c.getContext('2d'), w = CG.wheels[k];
+  x.clearRect(0, 0, 120, 120); x.drawImage(ringCv, 0, 0);
+  x.strokeStyle = 'rgba(255,255,255,.6)'; x.beginPath(); x.arc(60, 60, R, 0, 7); x.stroke();
+  x.beginPath(); x.arc(60 + w.x * R, 60 + w.y * R, 6, 0, 7); x.fillStyle = '#fff'; x.fill(); x.strokeStyle = '#000'; x.stroke();
+}
+WHEELS.forEach(([k, title, master]) => {
+  const box = document.createElement('div'); box.className = 'wheel';
+  const c = document.createElement('canvas'); c.width = c.height = 120; cgWheelCv[k] = c;
+  const t = document.createElement('div'); t.textContent = title;
+  const rs = document.createElement('button'); rs.className = 'sm'; rs.textContent = 'Reset'; rs.onclick = () => { CG.wheels[k] = {x: 0, y: 0}; drawWheel(k); cgDirty(); };
+  box.append(t, c, rs); $('#cgWheels').append(box);
+  const move = e => {
+    const r = c.getBoundingClientRect();
+    let x = ((e.clientX - r.left) / r.width * 120 - 60) / R, y = ((e.clientY - r.top) / r.height * 120 - 60) / R;
+    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+    CG.wheels[k] = {x, y}; drawWheel(k); cgDirty();
+  };
+  let down = false;
+  c.onpointerdown = e => { down = true; c.setPointerCapture(e.pointerId); move(e); };
+  c.onpointermove = e => { if (down) move(e); }; c.onpointerup = () => down = false;
+  cgSlider($('#cgWheelSl'), title + ' brightness', () => CG[master], v => CG[master] = v, -100, 100, 1);
+});
+// curves
+const cgCurveCv = $('#cgCurve'), CURVE_COL = {m: '#ffffff', r: '#ff5555', g: '#55ff77', b: '#6a8cff'};
+function drawCurve() {
+  const x = cgCurveCv.getContext('2d'), S = 300, pts = CG.curves[cgCurveCh];
+  x.fillStyle = '#0b0f0e'; x.fillRect(0, 0, S, S); x.strokeStyle = 'rgba(255,255,255,.14)'; x.lineWidth = 1; x.beginPath();
+  for (let i = 1; i < 4; i++) { x.moveTo(i * S / 4, 0); x.lineTo(i * S / 4, S); x.moveTo(0, i * S / 4); x.lineTo(S, i * S / 4); }
+  x.moveTo(0, S); x.lineTo(S, 0); x.st
